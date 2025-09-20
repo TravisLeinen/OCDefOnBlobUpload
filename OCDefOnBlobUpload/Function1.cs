@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -31,13 +32,10 @@ public class Function1
         var accountName = "ocdefstorage";
         
         var serviceUri = new Uri($"https://{accountName}.blob.core.windows.net");
-        var helper = new StorageHelper(serviceUri, cred);
-        await helper.ListContainersAsync();
 
         BlobServiceClient blob = new BlobServiceClient(serviceUri, cred);
 
-        
-        await foreach (var container in _service.GetBlobContainersAsync())
+        await foreach (var container in blob.GetBlobContainersAsync())
         {
             Console.WriteLine(container.Name);
         }
