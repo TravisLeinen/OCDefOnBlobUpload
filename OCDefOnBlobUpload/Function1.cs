@@ -26,6 +26,22 @@ public class Function1
         var response = req.CreateResponse(HttpStatusCode.OK);
         await response.WriteStringAsync("Hello from Azure Function!");
 
+        var options = new DefaultAzureCredentialOptions { ManagedIdentityClientId = "20238ad9-abb5-4ca6-a9ad-c468b21d0b3d" };
+        var cred = new DefaultAzureCredential(options);
+        var accountName = "ocdefstorage";
+        
+        var serviceUri = new Uri($"https://{accountName}.blob.core.windows.net");
+        var helper = new StorageHelper(serviceUri, cred);
+        await helper.ListContainersAsync();
+
+        BlobServiceClient blob = new BlobServiceClient(serviceUri, cred);
+
+        
+        await foreach (var container in _service.GetBlobContainersAsync())
+        {
+            Console.WriteLine(container.Name);
+        }
+
         return response;
     }
 
