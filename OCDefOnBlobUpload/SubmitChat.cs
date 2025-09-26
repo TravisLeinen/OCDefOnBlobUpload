@@ -49,19 +49,15 @@ public class SubmitChat
         };
 
         _logger.LogInformation("Successfully retrieved embeddings, searching with Azure AI Search...");
+        **/
+
         var searchOptions = new SearchOptions
         {
             Size = 5,
-            Select = { "content" }
+            Select = { "chunk" }
         };
-        searchOptions.VectorSearch = new VectorSearchOptions
-        {
-            Queries = { vectorQuery }
-        };
-        **/
-
         var searchClient = new SearchClient(new Uri(searchEndpoint), searchIndex, new AzureKeyCredential(searchKey));
-        var searchResults = await searchClient.SearchAsync<SearchDocument>(userQuery);
+        var searchResults = await searchClient.SearchAsync<SearchDocument>(userQuery, searchOptions);
 
         var relevantChunks = searchResults.Value.GetResults()
             .Select(r => r.Document["chunk"]?.ToString())
@@ -70,9 +66,11 @@ public class SubmitChat
 
         // Put relevant chunks together and send to OpenAI chat
         _logger.LogInformation("Successfully searched and found relevant chunks, plugging context into OpenAI chat...");
-        string context = string.Join("\n---\n", relevantChunks);
-        var systemPrompt = "You are a general knowledge assistant tasked with answering questions the user provides given context.";
+        var context = relevantChunks.First();
+        var systemPrompt = "You are a law proceedings assistant that pores over court proceeding documents to answer law-related queries and search for potential appeals.";
         var userPrompt = $"Context:\n{context}\n\nQuestion: {userQuery}";
+
+        // Return the answer to the frontend
         var messages = new ChatMessage[]
         {
             new SystemChatMessage(systemPrompt),
@@ -82,7 +80,8 @@ public class SubmitChat
         string answer;
         try
         {
-            ClientResult<ChatCompletion> chatResult = await client.GetChatClient("gpt-4o").CompleteChatAsync(messages);
+            ChatClient chatClient = client.GetChatClient("gpt-4o");
+            ClientResult<ChatCompletion> chatResult = await chatClient.CompleteChatAsync(messages);
             answer = chatResult.Value.Content.FirstOrDefault()?.Text ?? "I'm sorry, I couldn't find an answer to your question.";
         }
         catch (RequestFailedException ex)
