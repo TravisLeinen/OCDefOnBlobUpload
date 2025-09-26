@@ -1,14 +1,11 @@
 using Azure;
 using Azure.AI.OpenAI;
-using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
-using OpenAI.Embeddings;
 using System.ClientModel;
 using System.Net;
 
@@ -66,22 +63,32 @@ public class SubmitChat
 
         // Put relevant chunks together and send to OpenAI chat
         _logger.LogInformation("Successfully searched and found relevant chunks, plugging context into OpenAI chat...");
-        var context = relevantChunks.First();
         var systemPrompt = "You are a law proceedings assistant that pores over court proceeding documents to answer law-related queries and search for potential appeals.";
-        var userPrompt = $"Context:\n{context}\n\nQuestion: {userQuery}";
+        var userPrompt = $"Question: {userQuery}";
 
         // Return the answer to the frontend
         var messages = new ChatMessage[]
         {
-            new SystemChatMessage(systemPrompt),
-            new UserChatMessage(userPrompt)
+            new SystemChatMessage(systemPrompt)
         };
+        foreach (var relevantChunk in relevantChunks)
+        {
+            messages = messages.Append(new SystemChatMessage($"Context: {relevantChunk}")).ToArray();
+        }
 
         string answer;
         try
         {
             ChatClient chatClient = client.GetChatClient("gpt-4o");
-            ClientResult<ChatCompletion> chatResult = await chatClient.CompleteChatAsync(messages);
+            var i = 1;
+            foreach (var msg in messages)
+            {
+                _logger.LogInformation($"Adding context chunk {i}...");
+                await chatClient.CompleteChatAsync(msg);
+                await Task.Delay(5000); // To avoid rate limiting
+                i++;
+            }
+            ClientResult<ChatCompletion> chatResult = chatClient.CompleteChatAsync(new UserChatMessage(userPrompt)).Result;
             answer = chatResult.Value.Content.FirstOrDefault()?.Text ?? "I'm sorry, I couldn't find an answer to your question.";
         }
         catch (RequestFailedException ex)

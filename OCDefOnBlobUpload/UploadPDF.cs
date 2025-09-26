@@ -3,15 +3,11 @@ using Azure.AI.DocumentIntelligence;
 using Azure.Identity;
 using Azure.Search.Documents.Indexes;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using HttpMultipartParser;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using System.IO;
-using System.IO.Pipes;
 using System.Net;
-using System.Threading.Tasks;
 
 namespace OCDefOnBlobUpload;
 
