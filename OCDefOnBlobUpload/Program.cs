@@ -13,4 +13,10 @@ builder.Services
     .AddApplicationInsightsTelemetryWorkerService()
     .ConfigureFunctionsApplicationInsights();
 
+
+var listener = new AzureEventSourceListener(
+    (eventArgs, text) => Console.WriteLine(text),
+    System.Diagnostics.Tracing.EventLevel.Verbose // or EventLevel.Verbose for more detail
+);
+
 builder.Build().Run();
