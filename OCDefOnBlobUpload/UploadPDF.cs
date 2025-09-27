@@ -32,7 +32,7 @@ public class UploadPDF
     {
         _logger.LogInformation("HTTP trigger function processed a request.");
         // var cred = new VisualStudioCredential();
-        var cred = new ManagedIdentityCredential();
+        var cred = new ManagedIdentityCredential(clientId: "20238ad9-abb5-4ca6-a9ad-c468b21d0b3d");
         var pdfUri = new Uri($"https://{accountName}.blob.core.windows.net/pdfs");
         _logger.LogInformation("Successfully authenticated function");
 
