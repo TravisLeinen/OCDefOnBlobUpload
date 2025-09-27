@@ -144,7 +144,8 @@ public class SubmitChat
 
         // Search for previous chat history
         var historyUri = new Uri($"https://{accountName}.blob.core.windows.net/chathistory");
-        var cred = new VisualStudioCredential();
+        // var cred = new VisualStudioCredential();
+        var cred = new DefaultAzureCredential();
         BlobContainerClient container = new BlobContainerClient(historyUri, cred);
         BlobClient blobClient = container.GetBlobClient(chatRequest.SessionId + ".json");
         ChatMessage[] messages = GetFreshMessages();
