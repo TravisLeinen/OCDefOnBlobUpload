@@ -50,6 +50,7 @@ public class GetTags
                 await errorResponse.WriteStringAsync("No values provided in skill request.");
                 return errorResponse;
             }
+            _logger.LogInformation("Received AI Search skill request");
 
             var responseRecords = new List<SkillResponseRecord>();
 
@@ -79,10 +80,14 @@ public class GetTags
                         responseRecord.Data["tags"] = tags;
                         responseRecord.Data["tagCount"] = tags.Count;
 
-                        // Add individual tag values as separate fields (optional)
-                        foreach (var tag in tags)
+
+                        if (tags.TryGetValue("CaseNumber", out var caseNumber))
                         {
-                            responseRecord.Data[$"tag_{tag.Key}"] = tag.Value;
+                            responseRecord.Data["CaseNumber"] = caseNumber;
+                        }
+                        else
+                        {
+                            responseRecord.Data["CaseNumber"] = "NA";
                         }
 
                         _logger.LogInformation($"Successfully retrieved {tags.Count} tags for record {record.RecordId}");
