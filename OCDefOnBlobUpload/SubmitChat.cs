@@ -118,13 +118,10 @@ public class SubmitChat
         }
         catch
         {
-            // Fallback for legacy string-only requests
-            chatRequest = new ChatRequest
-            {
-                SessionId = Guid.NewGuid().ToString(),
-                Message = body
-            };
-            _logger.LogInformation($"Failed to parse chat request, using fallback to simple string request (no chat history): {chatRequest.Message}");
+            _logger.LogError($"Failed to parse chat request.");
+            var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+            await errorResponse.WriteStringAsync("Failed to parse chat request. Submissions require a session ID, message, and case number.");
+            return errorResponse;
         }
 
         // Search for user query with AI Search
@@ -133,7 +130,8 @@ public class SubmitChat
         var searchOptions = new SearchOptions
         {
             Size = 5,
-            Select = { "chunk" }
+            Select = { "chunk" },
+            Filter = chatRequest.CaseNumber
         };
         var searchClient = new SearchClient(new Uri(searchEndpoint), searchIndex, new AzureKeyCredential(searchKey));
         var searchResults = await searchClient.SearchAsync<SearchDocument>(chatRequest.Message, searchOptions);
@@ -212,9 +210,9 @@ public class SubmitChat
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Unexpected error: {ex.Message}");
+            _logger.LogError($"Unexpected error when sending messages to openAI: {ex.Message}");
             var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await errorResponse.WriteStringAsync("An unexpected error occurred.");
+            await errorResponse.WriteStringAsync("Failed to send messages to openAI.");
             return errorResponse;
         }
         _logger.LogInformation("Completed and returned response.");
