@@ -68,7 +68,6 @@ public class GetTags
                         var tags = tagsResponse.Value.Tags;
 
                         // Add tags to the response data
-                        responseRecord.Data["tags"] = tags;
                         responseRecord.Data["tagCount"] = tags.Count;
 
 
@@ -119,7 +118,6 @@ public class GetTags
 
             var jsonResponse = JsonSerializer.Serialize(skillResponse, new JsonSerializerOptions
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = true
             });
 
