@@ -1,5 +1,6 @@
 ﻿using Azure;
 using Azure.AI.OpenAI;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Models;
@@ -23,6 +24,8 @@ public class SubmitChat
     private readonly ILogger<SubmitChat> _logger;
     private readonly MarkdownPipeline _markdownPipeline;
 
+    private readonly string? managedIdentity = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
+    private readonly string chatHistoryContainer = Environment.GetEnvironmentVariable("CHAT_HISTORY_CONTAINER")!;
     private readonly string openAiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_KEY")!;
     private readonly string openAiEndpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")!;
     private readonly string accountName = Environment.GetEnvironmentVariable("STORAGE_ACCOUNT_NAME")!;
@@ -141,9 +144,8 @@ public class SubmitChat
             .ToList();
 
         // Search for previous chat history
-        var historyUri = new Uri($"https://{accountName}.blob.core.windows.net/chathistory");
-        // var cred = new VisualStudioCredential();
-        var cred = new ManagedIdentityCredential(clientId: "20238ad9-abb5-4ca6-a9ad-c468b21d0b3d");
+        var historyUri = new Uri($"https://{accountName}.blob.core.windows.net/{chatHistoryContainer}");
+        TokenCredential cred = managedIdentity != null ? new ManagedIdentityCredential(clientId: managedIdentity) : new VisualStudioCredential();
         BlobContainerClient container = new BlobContainerClient(historyUri, cred);
         BlobClient blobClient = container.GetBlobClient(chatRequest.SessionId + ".json");
         ChatMessage[] messages = GetFreshMessages();

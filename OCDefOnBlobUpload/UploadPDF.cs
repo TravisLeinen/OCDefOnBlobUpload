@@ -1,5 +1,6 @@
 using Azure;
 using Azure.AI.DocumentIntelligence;
+using Azure.Core;
 using Azure.Identity;
 using Azure.Search.Documents.Indexes;
 using Azure.Storage.Blobs;
@@ -16,6 +17,8 @@ namespace OCDefOnBlobUpload;
 public class UploadPDF
 {
     private readonly ILogger<UploadPDF> _logger;
+    private readonly string filesContainer = Environment.GetEnvironmentVariable("FILES_CONTAINER")!;
+    private readonly string? managedIdentity = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
     private readonly string accountName = Environment.GetEnvironmentVariable("STORAGE_ACCOUNT_NAME")!;
     private readonly string searchEndpoint = Environment.GetEnvironmentVariable("AZURE_SEARCH_ENDPOINT")!;
     private readonly string adminSearchKey = Environment.GetEnvironmentVariable("AZURE_SEARCH_ADMIN_KEY")!;
@@ -31,9 +34,8 @@ public class UploadPDF
         [HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequestData req)
     {
         _logger.LogInformation("HTTP trigger function processed a request.");
-        // var cred = new VisualStudioCredential();
-        var cred = new ManagedIdentityCredential(clientId: "20238ad9-abb5-4ca6-a9ad-c468b21d0b3d");
-        var pdfUri = new Uri($"https://{accountName}.blob.core.windows.net/pdfs");
+        TokenCredential cred = managedIdentity != null ? new ManagedIdentityCredential(clientId: managedIdentity) : new VisualStudioCredential();
+        var pdfUri = new Uri($"https://{accountName}.blob.core.windows.net/{filesContainer}");
         _logger.LogInformation("Successfully authenticated function");
 
         // Validate request
@@ -61,6 +63,7 @@ public class UploadPDF
                 return badResponse;
             }
 
+            // May be removed later, checks if a file is a pdf
             else if (!file.FileName.EndsWith("pdf", StringComparison.OrdinalIgnoreCase))
             {
                 var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
@@ -88,7 +91,7 @@ public class UploadPDF
             var originalFileName = file.FileName ?? "uploaded_file.pdf";
             var fileExtension = Path.GetExtension(originalFileName);
             var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(originalFileName);
-            var fileName = $"{fileNameWithoutExtension}_CN{caseNumber}{fileExtension}";
+            var fileName = $"{fileNameWithoutExtension}_CN_{caseNumber}{fileExtension}";
             BlobClient blob = container.GetBlobClient(fileName);
             _logger.LogInformation($"Uploading {fileName} for archiving...");
             using var memoryStream = new MemoryStream();

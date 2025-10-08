@@ -1,21 +1,11 @@
-﻿using Azure;
-using Azure.AI.OpenAI;
-using Azure.Core;
+﻿using Azure.Core;
 using Azure.Identity;
-using Azure.Search.Documents;
-using Azure.Search.Documents.Models;
 using Azure.Storage.Blobs;
-using Markdig;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using OpenAI.Chat;
-using System.ClientModel;
 using System.Net;
-using System.Numerics;
 using System.Text.Json;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 
 namespace OCDefOnBlobUpload;
@@ -23,6 +13,7 @@ namespace OCDefOnBlobUpload;
 public class GetTags
 {
     private readonly ILogger<GetTags> _logger;
+    private readonly string? managedIdentity = Environment.GetEnvironmentVariable("MANAGED_IDENTITY_CLIENT_ID");
 
     public GetTags(ILogger<GetTags> logger)
     {
@@ -33,7 +24,7 @@ public class GetTags
     public async Task<HttpResponseData> Run(
         [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
     {
-        var cred = new ManagedIdentityCredential(clientId: "20238ad9-abb5-4ca6-a9ad-c468b21d0b3d");
+        TokenCredential cred = managedIdentity != null ? new ManagedIdentityCredential(clientId: managedIdentity) : new VisualStudioCredential();
 
         try
         {
