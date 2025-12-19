@@ -150,7 +150,9 @@ public class SubmitChat
         _logger.LogInformation("Checking blob storage for existing chat history...");
         var historyUri = new Uri($"https://{accountName}.blob.core.windows.net/{chatHistoryContainer}");
         TokenCredential cred = managedIdentity != null ? new ManagedIdentityCredential(clientId: managedIdentity) : new VisualStudioCredential();
+        _logger.LogInformation("Acquired token credential.");
         BlobContainerClient container = new BlobContainerClient(historyUri, cred);
+        _logger.LogInformation("Acquired blob container client.");
         BlobClient blobClient = container.GetBlobClient(chatRequest.SessionId + ".json");
         ChatMessage[] messages = GetFreshMessages();
         ChatHistory chatHistory = GetFreshHistory();
